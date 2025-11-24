@@ -1,42 +1,102 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8"/>
     <title>Campus Compass</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; }
-        h1 { color: #00462A; } /* 백석대 컬러 느낌? */
-        .container { border: 1px solid #ccc; padding: 20px; border-radius: 10px; display: inline-block; }
-        .status { color: green; font-weight: bold; }
+        /* 화면 전체를 지도(Map)로 채우기 */
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; }
+        #map { width: 100%; height: 100%; }
+
+        /* 마커 위에 뜨는 이름표(인포윈도우) 스타일 */
+        .info-window {
+            padding: 5px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+            border-radius: 5px;
+            white-space: nowrap; /* 줄바꿈 방지 */
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>🧭 Campus Compass</h1>
-    <p>백석 지도앱의 새로운 시작!</p>
-    <hr>
-    <p>현재 서버 상태: <span class="status">정상 작동 중 (H2 DB 연결됨)</span></p>
-    <br>
-    <button onclick="checkApi()">API 통신 테스트</button>
-</div>
+<div id="map"></div>
+
+<script type="text/javascript" src="http://dapi.kakao.com/v2/maps/sdk.js?appkey=62ce24f8a9799f9545de678f7cd4fb4c"></script>
 
 <script>
-    // 백엔드 API가 살아있는지 확인하는 간단한 스크립트
-    function checkApi() {
-        fetch('/api/buildings') // 건물 목록 조회 API (SecurityConfig에서 허용해둠)
-            .then(response => {
-                if (response.ok) {
-                    alert('API 통신 성공! 건물 데이터를 가져올 수 있습니다.');
-                } else {
-                    alert('API 통신 실패.. Security 설정을 확인해주세요.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('서버와 연결할 수 없습니다.');
+    // 1. 지도 생성하기
+    var container = document.getElementById('map');
+    var options = {
+        center: new kakao.maps.LatLng(36.8392, 127.1835), // 백석대 좌표 (초기 중심)
+        level: 3 // 지도의 확대 레벨
+    };
+
+    var map = new kakao.maps.Map(container, options);
+    console.log("지도 로딩 성공! 데이터를 불러옵니다...");
+
+    // =========================================================
+    // [개발자 편의 기능] 지도를 클릭하면 해당 위치의 좌표를 콘솔에 출력
+    // F12 -> Console 탭을 켜고 지도를 클릭해보세요.
+    // =========================================================
+    kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
+        var latlng = mouseEvent.latLng;
+
+        console.log('%c[좌표 확인]', 'color: blue; font-weight: bold;');
+        console.log('위도(latitude): ' + latlng.getLat());
+        console.log('경도(longitude): ' + latlng.getLng());
+        console.log('복사용 SQL: ' + latlng.getLat() + ', ' + latlng.getLng());
+    });
+    // =========================================================
+
+
+    // 2. 백엔드 API 호출하여 건물 데이터 가져오기
+    fetch('/api/buildings')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('네트워크 응답이 올바르지 않습니다.');
+            }
+            return response.json();
+        })
+        .then(buildings => {
+            console.log('가져온 건물 데이터:', buildings);
+
+            // 3. 가져온 데이터만큼 반복하며 마커 생성
+            buildings.forEach(function(building) {
+
+                // 마커가 표시될 위치
+                var markerPosition  = new kakao.maps.LatLng(building.latitude, building.longitude);
+
+                // 마커 생성
+                var marker = new kakao.maps.Marker({
+                    position: markerPosition,
+                    map: map // 지도에 올리기
+                });
+
+                // 4. 마커에 이름표(인포윈도우) 달기
+                var content = '<div class="info-window">' + building.name + '</div>';
+
+                var infowindow = new kakao.maps.InfoWindow({
+                    content : content
+                });
+
+                // 마우스 올렸을 때 이름표 열기
+                kakao.maps.event.addListener(marker, 'mouseover', function() {
+                    infowindow.open(map, marker);
+                });
+
+                // 마우스 치웠을 때 이름표 닫기
+                kakao.maps.event.addListener(marker, 'mouseout', function() {
+                    infowindow.close();
+                });
             });
-    }
+        })
+        .catch(error => {
+            console.error('건물 데이터 로딩 실패:', error);
+            // alert('서버에서 건물 정보를 가져오지 못했습니다. H2 DB가 켜져 있는지 확인해주세요.');
+        });
 </script>
 </body>
 </html>
