@@ -36,6 +36,9 @@ out/
 ### VS Code ###
 .vscode/
 
-src/main/resources/application-dev.yml
-docker-compose.yml
-docker/mysql/init/**
+### Mac OS (팀원 중에 맥 사용자가 있을 수 있음) ###
+.DS_Store
+
+### Security & Local Config ###
+.env
+# H2를 쓰더라도 JWT 키 값은 .env에 보관하는 것이 안전합니다.

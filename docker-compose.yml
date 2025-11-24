@@ -1,0 +1,26 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: swbackend-mysql
+    ports: [ "3308:3306" ]
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: swbackend
+      MYSQL_USER: swbackend
+      MYSQL_PASSWORD: swbackend
+      TZ: UTC
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --explicit_defaults_for_timestamp=1
+      - --default-authentication-plugin=mysql_native_password
+    volumes:
+      - swbackend-mysql-data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD","mysqladmin","ping","-h","127.0.0.1","-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+volumes:
+  swbackend-mysql-data:
