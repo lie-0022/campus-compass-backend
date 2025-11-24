@@ -1,0 +1,89 @@
+# 1. 회원가입 API 테스트
+POST http://localhost:8080/api/auth/signup
+Content-Type: application/json
+
+{
+  "student_id": "20240001",
+  "password": "password123!",
+  "nickname": "테스트계정"
+}
+
+###
+
+# 2. 로그인 API 테스트
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "student_id": "20240001",
+  "password": "password123!"
+}
+> {%
+    client.global.set("myRefreshToken", response.body.refreshToken);
+    client.global.set("myAccessToken", response.body.accessToken);
+    client.log("myAccessToken: " + client.global.get("myAccessToken"));
+%}
+
+###
+
+# 3. 토큰 갱신 API 테스트
+POST http://localhost:8080/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{myRefreshToken}}"
+}
+
+###
+
+# 4. 로그아웃 API 테스트
+POST http://localhost:8080/api/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{myRefreshToken}}"
+}
+
+###
+
+# 7. [성공 테스트] 즐겨찾기 추가 API (인증 필요)
+POST http://localhost:8080/api/favorites
+Content-Type: application/json
+Authorization: Bearer {{myAccessToken}}
+
+{
+  "roomId": 1
+}
+
+###
+
+# 8. [성공 테스트] 즐겨찾기 목록 조회 API (인증 필요)
+GET http://localhost:8080/api/favorites
+Authorization: Bearer {{myAccessToken}}
+
+###
+
+# 9. [성공 테스트] 즐겨찾기 삭제 API (인증 필요)
+# ?roomId=1 (우리가 7번에서 추가한 강의실)을 파라미터로 넘깁니다.
+DELETE http://localhost:8080/api/favorites?roomId=1
+Authorization: Bearer {{myAccessToken}}
+
+# 10. [테스트 성공] 건물 목록 조회 API
+###
+GET http://localhost:8080/api/buildings
+
+# 11. [테스트 성공] 건물 상세 조회 API
+###
+GET http://localhost:8080/api/buildings/1
+
+# 12. [테스트] 빈 강의실 조회(기본값 : 오늘/지금 ~+2H)
+###
+GET http://localhost:8080/api/floors/1/available-rooms
+
+# 13. [테스트] 빈 강의실 특정 시간 조회(수요일 10:00~12:00)
+###
+GET http://localhost:8080/api/floors/1/available-rooms?dayOfWeek=3&start=10:00&end=12:00
+
+#14. [테스트] 통합 검색
+###
+http://localhost:8080/api/search?query=본부
