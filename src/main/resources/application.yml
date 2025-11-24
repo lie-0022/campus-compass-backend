@@ -1,18 +1,48 @@
 spring:
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${DB_URL:jdbc:mysql://127.0.0.1:3308/swbackend?useUnicode=true&characterEncoding=utf8&connectionCollation=utf8mb4_unicode_ci&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true}
-    username: ${CI_DB_USER}
-    password: ${CI_DB_PASSWORD}
+  application:
+    name: campus-compass-backend
 
+  # 1. H2 데이터베이스 설정 (메모리 모드)
+  datasource:
+    # url 뒤에 ;MODE=MySQL을 붙여서 기존 MySQL 쿼리와 호환되게 합니다.
+    url: jdbc:h2:mem:campusdb;MODE=MySQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  # 2. H2 콘솔 설정 (웹에서 DB 확인 가능)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console  # 접속 주소: http://localhost:8080/h2-console
+
+  # 3. JPA 설청
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: update  # 서버 켜질 때 테이블 자동 생성 (create-drop은 끄면 삭제됨)
+    show-sql: true      # 실행되는 쿼리를 로그에 보여줌
     properties:
       hibernate:
         format_sql: true
-        show_sql: true
-    database-platform: org.hibernate.dialect.MySQL8Dialect
+        dialect: org.hibernate.dialect.H2Dialect
 
+  # 4. Thymeleaf 설정 (프론트엔드 화면)
+  thymeleaf:
+    cache: false        # 개발 중에는 캐시를 꺼야 HTML 수정 후 바로 반영됨
+    prefix: classpath:/templates/
+    suffix: .html
+
+  # 5. 파일 업로드 용량 제한 (필요시)
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+# 6. JWT 비밀키 및 로그 레벨
+# (원래는 .env에서 가져오지만, 로컬 개발 편의를 위해 여기에 임시 기본값을 넣거나 환경변수를 유지합니다)
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:vmfhaltkwkdjfuqqlzkqhzldkqslekffjqtlsfkldkf}
+
+logging:
+  level:
+    org.hibernate.SQL: debug
