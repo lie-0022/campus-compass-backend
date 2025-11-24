@@ -21,14 +21,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      SPRING_PROFILES_ACTIVE: ci
-      CI_DB_HOST: 127.0.0.1
-      CI_DB_PORT: 3308
-      CI_DB_NAME: swbackend
-      CI_DB_USER: ${{ secrets.CI_DB_USER }}
-      CI_DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
-      CI_DB_ROOT_PASSWORD: ${{ secrets.CI_DB_ROOT_PASSWORD }}
-      JWT_SECRET : ${{ secrets.JWT_SECRET }}
+      # H2는 별도 DB 서버 정보가 필요 없습니다.
+      # JWT 시크릿 키만 있으면 테스트가 가능합니다.
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
     steps:
       - uses: actions/checkout@v4
@@ -40,29 +35,8 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      - name: Start MySQL and wait for it to be healthy
-        run: docker compose -f docker-compose.ci.yml up --wait -d
-
-      - name: Create application-ci.properties
-        run: |
-          mkdir -p src/test/resources
-          {
-            echo "spring.datasource.url=jdbc:mysql://${{ env.CI_DB_HOST }}:${{ env.CI_DB_PORT }}/${{ env.CI_DB_NAME }}?useUnicode=true&characterEncoding=utf8&connectionCollation=utf8mb4_unicode_ci&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true"
-            echo "spring.datasource.username=${{ env.CI_DB_USER }}"
-            echo "spring.datasource.password=${{ env.CI_DB_PASSWORD }}"
-            echo "spring.jpa.hibernate.ddl-auto=create-drop"
-            echo "spring.jpa.properties.hibernate.show_sql=true"
-            echo "spring.jpa.properties.hibernate.format_sql=true"
-            echo "spring.jpa.database-platform=org.hibernate.dialect.MySQL8Dialect"
-          } >> src/test/resources/application-ci.properties
+      # 💡 변경점: MySQL 실행(docker compose) 및 설정 파일 생성 단계가 삭제되었습니다.
+      # Spring Boot가 알아서 내장 H2를 사용하여 테스트를 수행합니다.
 
       - name: Run tests
         run: ./gradlew test --no-daemon
-
-      - name: MySQL logs on failure
-        if: failure()
-        run: docker compose -f docker-compose.ci.yml logs --no-color mysql
-
-      - name: Down services
-        if: always()
-        run: docker compose -f docker-compose.ci.yml down -v
