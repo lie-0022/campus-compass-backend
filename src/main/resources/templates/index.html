@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Campus Compass</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; }
+        h1 { color: #00462A; } /* 백석대 컬러 느낌? */
+        .container { border: 1px solid #ccc; padding: 20px; border-radius: 10px; display: inline-block; }
+        .status { color: green; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🧭 Campus Compass</h1>
+    <p>백석 지도앱의 새로운 시작!</p>
+    <hr>
+    <p>현재 서버 상태: <span class="status">정상 작동 중 (H2 DB 연결됨)</span></p>
+    <br>
+    <button onclick="checkApi()">API 통신 테스트</button>
+</div>
+
+<script>
+    // 백엔드 API가 살아있는지 확인하는 간단한 스크립트
+    function checkApi() {
+        fetch('/api/buildings') // 건물 목록 조회 API (SecurityConfig에서 허용해둠)
+            .then(response => {
+                if (response.ok) {
+                    alert('API 통신 성공! 건물 데이터를 가져올 수 있습니다.');
+                } else {
+                    alert('API 통신 실패.. Security 설정을 확인해주세요.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('서버와 연결할 수 없습니다.');
+            });
+    }
+</script>
+</body>
+</html>
