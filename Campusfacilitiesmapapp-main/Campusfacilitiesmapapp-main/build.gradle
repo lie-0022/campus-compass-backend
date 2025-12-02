@@ -1,0 +1,31 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.0' // Spring Boot 버전
+    id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '21' // 현재 사용하시는 JDK 21에 맞춤
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Boot Web 애플리케이션 개발에 필수 (Controller, Web Server 포함)
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // HTML 템플릿 엔진 (CampusController에서 "map"을 반환하기 위해 필수)
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+
+    // 개발 시 편리한 자동 재시작 및 LiveReload를 위한 도구 (선택 사항이지만 권장)
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // 테스트용 라이브러리
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

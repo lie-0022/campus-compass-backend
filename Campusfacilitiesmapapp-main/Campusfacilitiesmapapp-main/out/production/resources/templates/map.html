@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<!-- Thymeleaf 네임스페이스 선언: 서버에서 전달된 데이터를 HTML에 바인딩할 수 있게 해줍니다. -->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Tailwind CSS CDN 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Controller에서 넘겨준 ${title} 변수로 페이지 제목을 설정합니다. -->
+    <title th:text="${title}">캠퍼스 시설 안내 시스템</title>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 flex flex-col items-center">
+
+<!-- 메인 컨테이너 -->
+<div class="w-full max-w-4xl bg-white shadow-xl rounded-lg overflow-hidden">
+
+    <!-- 헤더 -->
+    <header class="bg-indigo-600 text-white p-4 text-center rounded-t-lg">
+        <h1 class="text-2xl font-bold" th:text="${title}">시설 안내 시스템</h1>
+    </header>
+
+    <!-- 메인 콘텐츠 영역 -->
+    <main class="p-6">
+
+        <!-- 검색 입력창 -->
+        <div class="mb-6 flex gap-2">
+            <input type="text" placeholder="시설 또는 건물 검색..."
+                   class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+            <button class="bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-3 px-6 rounded-lg shadow-md transition duration-200">
+                🔍 검색
+            </button>
+        </div>
+
+        <!-- 지도 표시 영역 -->
+        <div class="border-4 border-gray-200 rounded-xl overflow-hidden shadow-inner bg-gray-50">
+            <h2 class="text-xl font-semibold p-4 bg-gray-100 border-b text-gray-700">캠퍼스 지도 뷰</h2>
+
+            <!-- Controller에서 전달받은 이미지 경로를 바인딩합니다. -->
+            <img th:src="${currentMapUrl}" alt="캠퍼스 지도 이미지"
+                 class="w-full h-auto object-cover"
+                 onerror="this.onerror=null; this.src='https://placehold.co/800x400/312e81/ffffff?text=Baekseok+Campus+Map+Placeholder';">
+
+            <div class="p-4 bg-yellow-50 text-yellow-800 text-sm border-t border-yellow-200">
+                <p>🚨 **주의:** 이 지도는 서버(Spring Boot)에서 정적으로 렌더링되고 있습니다.</p>
+            </div>
+        </div>
+
+        <!-- 시설 목록 섹션 (향후 DB 데이터로 대체) -->
+        <section class="mt-8">
+            <h3 class="text-lg font-bold border-b pb-2 mb-4 text-gray-700">주요 시설 목록 (예시)</h3>
+            <ul class="space-y-2">
+                <li class="p-3 bg-white border rounded-md shadow-sm">본부동 (Main Hall)</li>
+                <li class="p-3 bg-white border rounded-md shadow-sm">백석 생활관 (Dormitory)</li>
+                <li class="p-3 bg-white border rounded-md shadow-sm">도서관 (Library)</li>
+            </ul>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="bg-gray-200 text-gray-600 text-center text-xs p-3 rounded-b-lg mt-4">
+        &copy; 2025 <span th:text="${title}">시설 안내 시스템</span>. Powered by Spring Boot & Thymeleaf.
+    </footer>
+</div>
+</body>
+</html>

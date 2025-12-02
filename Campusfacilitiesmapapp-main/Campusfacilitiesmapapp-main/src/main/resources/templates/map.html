@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>캠퍼스 시설 지도</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 사용자 정의 CSS 설정 (Tailwind 설정 확장) -->
+    <script>
+        let tailwind;
+        tailwind.config = {
+            darkMode: 'class', // 다크모드 지원
+            theme: {
+                extend: {
+                    colors: {
+                        background: "var(--background)",
+                        foreground: "var(--foreground)",
+                        card: "var(--card)",
+                        "card-foreground": "var(--card-foreground)",
+                        popover: "var(--popover)",
+                        "popover-foreground": "var(--popover-foreground)",
+                        primary: "var(--primary)",
+                        "primary-foreground": "var(--primary-foreground)",
+                        secondary: "var(--secondary)",
+                        "secondary-foreground": "var(--secondary-foreground)",
+                        muted: "var(--muted)",
+                        "muted-foreground": "var(--muted-foreground)",
+                        accent: "var(--accent)",
+                        "accent-foreground": "var(--accent-foreground)",
+                        destructive: "var(--destructive)",
+                        "destructive-foreground": "var(--destructive-foreground)",
+                        border: "var(--border)",
+                        input: "var(--input)",
+                        ring: "var(--ring)",
+                    },
+                    fontFamily: {
+                        pretendard: "var(--font-family-pretendard)",
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Figma에서 추출한 CSS 스타일 + 로직용 스타일 -->
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
+        /* 사용자 제공 CSS 변수 시작 */
+        :root {
+            --font-family-pretendard: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            --font-size: 16px;
+            --background: #ffffff;
+            --foreground: 0.145 0 0; /* oklch 값은 브라우저 호환성을 위해 hex/rgb로 변환되거나 tailwind가 처리 */
+            /* 호환성을 위해 일부 색상만 Hex로 대체하거나 유지합니다 */
+            --card: #ffffff;
+            --popover: #ffffff;
+            --primary: #030213;
+            --primary-foreground: #ffffff;
+            --secondary: #f4f4f5;
+            --secondary-foreground: #030213;
+            --muted: #ececf0;
+            --muted-foreground: #717182;
+            --accent: #e9ebef;
+            --accent-foreground: #030213;
+            --destructive: #d4183d;
+            --destructive-foreground: #ffffff;
+            --border: rgba(0, 0, 0, 0.1);
+            --input: transparent;
+            --input-background: #f3f3f5;
+            --switch-background: #cbced4;
+            --radius: 0.625rem;
+        }
+
+        .dark {
+            --background: #030213;
+            --foreground: #ffffff;
+            --card: #030213;
+            --popover: #030213;
+            --primary: #ffffff;
+            --primary-foreground: #030213;
+            --secondary: #27272a;
+            --secondary-foreground: #ffffff;
+            --muted: #27272a;
+            --muted-foreground: #a1a1aa;
+            --accent: #27272a;
+            --accent-foreground: #ffffff;
+            --destructive: #7f1d1d;
+            --destructive-foreground: #ffffff;
+            --border: #27272a;
+            --input: #27272a;
+        }
+
+        /* 기본 스타일 적용 */
+        @layer base {
+            * {
+                @apply border-border;
+            }
+            body {
+                @apply bg-background text-foreground;
+                font-family: var(--font-family-pretendard);
+            }
+        }
+
+        /* 사용자 제공 타이포그래피 스타일 */
+        h1 { @apply text-2xl font-medium leading-normal; }
+        h2 { @apply text-xl font-medium leading-normal; }
+        h3 { @apply text-lg font-medium leading-normal; }
+        p { @apply text-base font-normal leading-normal; }
+
+        /* 기능용 유틸리티 클래스 */
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden bg-background text-foreground">
+
+<!-- 1. 헤더 (Header) -->
+<header class="bg-card border-b border-border px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+    <div class="flex items-center gap-2">
+        <!-- 뒤로가기 버튼 (필요시 활성화) -->
+        <!-- <button class="p-1 hover:bg-accent rounded-full"><svg ...></svg></button> -->
+        <h1 class="text-lg font-bold text-foreground">캠퍼스 지도</h1>
+    </div>
+</header>
+
+<!-- 2. 카테고리 필터 (Category Filter) -->
+<div class="bg-card pt-3 pb-3 border-b border-border z-10">
+    <div class="overflow-x-auto scrollbar-hide">
+        <div class="flex gap-2.5 px-5 min-w-max" id="category-list">
+            <!-- 자바스크립트로 카테고리 버튼 생성 -->
+        </div>
+    </div>
+</div>
+
+<!-- 3. 메인 콘텐츠 (시설 목록 & 건물 목록) -->
+<main class="flex-1 overflow-y-auto bg-background p-4 relative" id="main-content">
+
+    <!-- 지도 영역 (임시) -->
+    <div class="mb-6 rounded-xl overflow-hidden border border-border shadow-sm">
+        <!--/*@thymesVar id="currentMapUrl" type=""*/-->
+        <img th:src="${currentMapUrl}" alt="캠퍼스 지도" class="w-full h-auto object-cover bg-muted"
+             onerror="this.src='https://placehold.co/600x400/e9ebef/717182?text=Map+Image'"/>
+    </div>
+
+    <!-- 건물별 시설 리스트 영역 -->
+    <div id="building-list-container" class="space-y-3 pb-24">
+        <!-- 자바스크립트로 건물 목록 생성 -->
+    </div>
+
+</main>
+
+<!-- 4. 시설 상세 시트 (Bottom Sheet) -->
+<div id="detail-sheet-backdrop" class="fixed inset-0 bg-black/40 z-40 hidden transition-opacity opacity-0 duration-300" onclick="closeSheet()"></div>
+<div id="detail-sheet" class="fixed bottom-0 left-0 right-0 bg-card rounded-t-[1.5rem] shadow-2xl z-50 transform translate-y-full transition-transform duration-300 h-[85vh] flex flex-col border-t border-border/10">
+    <!-- 시트 내용이 자바스크립트로 채워짐 -->
+</div>
+
+<script>
+    // ==========================================
+    // 1. 아이콘 및 데이터
+    // ==========================================
+
+    const icons = {
+        LayoutGrid: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
+        Coffee: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M8 21v-3H4v-3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3h-4v3"/><line x1="6" x2="18" y1="6" y2="6"/><line x1="6" x2="18" y1="18" y2="18"/></svg>',
+        UtensilsCrossed: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 2-4 4V22"/><path d="M8 2v10l-2 2 2 2h8"/><path d="m18 16-2 2-2-2"/></svg>',
+        BookOpen: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+        ShoppingBag: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 7v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-3-5"/><line x1="3" x2="21" y1="7" y2="7"/><path d="M12 11v8"/></svg>',
+        Armchair: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 8V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M5 14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3H5z"/><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/></svg>',
+        Dumbbell: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 10 2-2 4 4 2-2"/><path d="M18 16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2z"/></svg>',
+        Cross: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+        Bus: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20v-6a2 2 0 1 1 4 0v6"/><path d="M12 2v6a2 2 0 1 0 4 0V2"/><path d="M18 16a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/><path d="M6 16a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/><path d="M17 21H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4z"/></svg>',
+        Banknote: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M14 12h-2m-2 0H8"/></svg>',
+        ChevronDown: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+        Clock: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+        Phone: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+        Close: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+        MapPin: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>'
+    };
+
+    const categories = [
+        { id: 'all', label: '전체', icon: 'LayoutGrid' },
+        { id: 'cafe', label: '카페', icon: 'Coffee' },
+        { id: 'restaurant', label: '식당', icon: 'UtensilsCrossed' },
+        { id: 'library', label: '도서관', icon: 'BookOpen' },
+        { id: 'convenience', label: '편의점', icon: 'ShoppingBag' },
+        { id: 'lounge', label: '휴게실', icon: 'Armchair' },
+        { id: 'gym', label: '체육관', icon: 'Dumbbell' },
+        { id: 'medical', label: '의무실', icon: 'Cross' },
+        { id: 'transport', label: '통학버스', icon: 'Bus' },
+        { id: 'atm', label: 'ATM', icon: 'Banknote' },
+    ];
+
+    // Mock Data (임시 데이터)
+    const facilities = [
+        { id: 1, name: '학생 식당', building: '본부동', floor: '1F', category: 'restaurant', hours: '09:00 - 19:00', contact: '041-550-0000', description: '다양한 메뉴가 있는 학생 식당입니다.' },
+        { id: 2, name: '블루포트', building: '도서관', floor: '1F', category: 'cafe', hours: '08:00 - 20:00', contact: '041-550-0002', description: '커피와 음료를 즐길 수 있는 카페입니다.' },
+        { id: 3, name: 'CU 편의점', building: '생활관', floor: '1F', category: 'convenience', hours: '24시간', contact: '', description: '24시간 편의점입니다.' },
+        { id: 4, name: '교직원 식당', building: '본부동', floor: '2F', category: 'restaurant', hours: '11:00 - 14:00', contact: '041-550-0001', description: '교직원 전용 식당입니다.' }
+    ];
+
+    let selectedCategory = 'all';
+    let expandedBuildings = new Set(); // 펼쳐진 건물 목록
+
+    // ==========================================
+    // 2. UI 렌더링
+    // ==========================================
+
+    function renderCategories() {
+        const container = document.getElementById('category-list');
+        container.innerHTML = categories.map(cat => {
+            const isSelected = selectedCategory === cat.id;
+            // CSS 변수(--primary)를 활용한 스타일 적용
+            const btnClass = isSelected
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-card text-muted-foreground border border-border hover:border-gray-300';
+
+            return `
+                    <button onclick="selectCategory('${cat.id}')"
+                        class="flex items-center gap-1.5 px-3.5 py-2 rounded-full whitespace-nowrap text-sm transition-all ${btnClass}">
+                        ${icons[cat.icon]}
+                        <span>${cat.label}</span>
+                    </button>
+                `;
+        }).join('');
+    }
+
+    function renderFacilities() {
+        const container = document.getElementById('building-list-container');
+        const filtered = selectedCategory === 'all'
+            ? facilities
+            : facilities.filter(f => f.category === selectedCategory);
+
+        if (filtered.length === 0) {
+            container.innerHTML = `<div class="text-center text-muted-foreground py-10">해당 카테고리의 시설이 없습니다.</div>`;
+            return;
+        }
+
+        // 건물별 그룹화
+        const grouped = {};
+        filtered.forEach(f => {
+            if (!grouped[f.building]) grouped[f.building] = [];
+            grouped[f.building].push(f);
+        });
+
+        container.innerHTML = Object.keys(grouped).map(building => {
+            const items = grouped[building];
+            const isExpanded = expandedBuildings.has(building);
+
+            return `
+                    <div class="bg-card rounded-xl border border-border overflow-hidden">
+                        <button onclick="toggleBuilding('${building}')" class="w-full px-4 py-3.5 flex items-center justify-between hover:bg-accent/50 transition-colors">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-2 h-2 rounded-full bg-primary"></div>
+                                <span class="text-sm font-bold text-foreground">${building}</span>
+                                <span class="text-xs text-muted-foreground">${items.length}개</span>
+                            </div>
+                            <div class="transition-transform duration-200 text-muted-foreground ${isExpanded ? 'rotate-180' : ''}">
+                                ${icons.ChevronDown}
+                            </div>
+                        </button>
+
+                        <div class="${isExpanded ? 'block' : 'hidden'} border-t border-border">
+                            ${items.map(item => `
+                                <div onclick="openSheet(${item.id})" class="px-4 py-3 hover:bg-accent/50 cursor-pointer flex justify-between items-center border-b border-border last:border-0 transition-colors">
+                                    <div>
+                                        <div class="text-sm font-medium text-foreground">${item.name}</div>
+                                        <div class="text-xs text-muted-foreground mt-0.5">${item.floor} • ${item.category}</div>
+                                    </div>
+                                    <div class="text-muted-foreground">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+        }).join('');
+    }
+
+    // ==========================================
+    // 3. 기능 함수
+    // ==========================================
+
+    function selectCategory(id) {
+        selectedCategory = id;
+        renderCategories();
+        renderFacilities();
+    }
+
+    function toggleBuilding(buildingName) {
+        if (expandedBuildings.has(buildingName)) {
+            expandedBuildings.delete(buildingName);
+        } else {
+            expandedBuildings.add(buildingName);
+        }
+        renderFacilities();
+    }
+
+    function openSheet(facilityId) {
+        const facility = facilities.find(f => f.id === facilityId);
+        if (!facility) return;
+
+        const sheet = document.getElementById('detail-sheet');
+        const backdrop = document.getElementById('detail-sheet-backdrop');
+
+        // 시트 내용 동적 생성
+        sheet.innerHTML = `
+                <div class="relative h-48 bg-accent/20 flex items-center justify-center rounded-t-[1.5rem]">
+                    <button onclick="closeSheet()" class="absolute top-4 right-4 p-2 bg-card rounded-full shadow-sm text-foreground hover:bg-accent transition-colors">
+                        ${icons.Close}
+                    </button>
+                    <div class="text-primary opacity-20">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    </div>
+                </div>
+                <div class="p-6 flex-1 overflow-y-auto bg-card">
+                    <h2 class="text-2xl font-bold text-foreground mb-1">${facility.name}</h2>
+                    <p class="text-sm text-muted-foreground mb-6">${facility.building} ${facility.floor}</p>
+
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">${icons.Clock}</div>
+                            <div>
+                                <p class="text-xs text-muted-foreground">운영시간</p>
+                                <p class="text-sm text-foreground">${facility.hours}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">${icons.Phone}</div>
+                            <div>
+                                <p class="text-xs text-muted-foreground">연락처</p>
+                                <p class="text-sm text-foreground">${facility.contact || '정보 없음'}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">${icons.BookOpen}</div>
+                            <div>
+                                <p class="text-xs text-muted-foreground">설명</p>
+                                <p class="text-sm text-foreground">${facility.description}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 border-t border-border bg-card">
+                    <button class="w-full bg-primary text-primary-foreground py-3.5 rounded-xl font-medium hover:opacity-90 transition-opacity">
+                        길찾기
+                    </button>
+                </div>
+            `;
+
+        backdrop.classList.remove('hidden');
+        setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
+        sheet.classList.remove('translate-y-full');
+    }
+
+    function closeSheet() {
+        const sheet = document.getElementById('detail-sheet');
+        const backdrop = document.getElementById('detail-sheet-backdrop');
+
+        sheet.classList.add('translate-y-full');
+        backdrop.classList.add('opacity-0');
+
+        setTimeout(() => {
+            backdrop.classList.add('hidden');
+        }, 300);
+    }
+
+    // 초기 실행
+    document.addEventListener('DOMContentLoaded', () => {
+        renderCategories();
+        renderFacilities();
+    });
+</script>
+</body>
+</html>
