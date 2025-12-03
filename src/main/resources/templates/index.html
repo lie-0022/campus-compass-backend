@@ -2,25 +2,419 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
     <title>Campus Compass</title>
-    <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; }
-        #map { width: 100%; height: 100%; }
 
-        .info-window {
-            padding: 5px;
-            font-size: 13px;
+    <style>
+        /* 기본 설정 */
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: sans-serif; }
+        #map { width: 100%; height: 100%; position: relative; }
+        .info-window { padding: 5px; font-size: 13px; font-weight: bold; color: #333; text-align: center; border-radius: 5px; white-space: nowrap; }
+
+        /* 1. 상단 검색바 및 메뉴 버튼 */
+        .top-ui-container {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%; /* 모바일 화면에 맞게 너비 조정 */
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        #main-search-bar {
+            flex-grow: 1;
+            padding: 12px 15px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            font-size: 16px;
+            outline: none;
+            display: flex;
+            align-items: center;
+        }
+
+        #main-search-bar input {
+            border: none;
+            flex-grow: 1;
+            margin-left: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        #hamburger-menu-btn {
+            background-color: #fff;
+            border: none;
+            padding: 10px 12px;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        /* 2. 내 위치 버튼 (FAB) */
+        #my-location-fab {
+            position: absolute;
+            bottom: 250px; /* Bottom Sheet를 위해 위치 조정 */
+            right: 15px;
+            width: 50px;
+            height: 50px;
+            background-color: #fff;
+            border: none;
+            border-radius: 50%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+            font-size: 20px;
+            color: #333;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        /* 3. 건물 상세 정보창 (Bottom Sheet) */
+        #building-bottom-sheet {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 40%; /* 화면 하단 40% */
+            background-color: #fff;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 20;
+            /* 기본 숨김 상태 (아래로 완전히 이동) */
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            overflow: hidden;
+            display: none; /* JS 제어 전까지는 display: none */
+        }
+
+        /* 활성화 시 스타일 (JS로 class 추가) */
+        #building-bottom-sheet.active {
+            transform: translateY(0);
+            display: block;
+        }
+
+        .building-image-area {
+            width: 100%;
+            /* 16:9 비율을 위한 Padding Hack */
+            padding-top: 56.25%; /* 9/16 * 100% */
+            position: relative;
+            background-color: #f0f0f0;
+            overflow: hidden;
+        }
+
+        .building-image-area img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .sheet-header {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .building-info h1 {
+            margin: 0 0 5px 0;
+            font-size: 22px;
+            color: #333;
+        }
+
+        .building-info p {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        #sheet-close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #888;
+        }
+
+        /* 층 선택 탭 (가로 스크롤) */
+        .floor-tabs {
+            display: flex;
+            overflow-x: scroll;
+            padding: 0 15px;
+            gap: 8px;
+            border-bottom: 1px solid #eee;
+            -webkit-overflow-scrolling: touch; /* iOS 스크롤 부드럽게 */
+        }
+        .floor-tabs::-webkit-scrollbar { display: none; } /* 스크롤바 숨기기 */
+
+        .floor-tab {
+            white-space: nowrap;
+            padding: 8px 15px;
+            background-color: #f0f0f0;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 15px;
+            color: #555;
+            transition: background-color 0.2s;
+            margin-bottom: 10px;
+        }
+
+        .floor-tab.active {
+            background-color: #007bff; /* 활성화 색상 */
+            color: #fff;
+            font-weight: bold;
+        }
+
+        /* 강의실 리스트 */
+        .room-list-container {
+            overflow-y: scroll;
+            height: calc(100% - 150px); /* 이미지+헤더+탭 높이 제외 */
+            padding: 0 15px;
+            margin-top: 10px;
+        }
+
+        .room-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .room-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .room-details {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .room-name {
+            font-size: 16px;
             font-weight: bold;
             color: #333;
-            text-align: center;
-            border-radius: 5px;
-            white-space: nowrap;
+        }
+
+        .status-badge {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            color: #fff;
+        }
+
+        .status-badge.available { background-color: #4CAF50; } /* 🔵 사용가능 */
+        .status-badge.in-use { background-color: #F44336; } /* 🔴 수업중 */
+
+        .favorite-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #ccc; /* 비활성화 별 색상 */
+        }
+
+        .favorite-btn.active {
+            color: #FFC107; /* 활성화(찜한) 별 색상 */
+        }
+
+        /* 4. 검색 결과 리스트 (기본 숨김) */
+        #search-results-list {
+            position: absolute;
+            top: 65px; /* 검색바 아래에 위치 */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-height: 50%;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            z-index: 9;
+            list-style: none;
+            padding: 10px 0;
+            margin: 0;
+            display: none; /* 검색창 활성화 시 JS로 보이게 할 예정 */
+        }
+        .search-result-item {
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            border-bottom: 1px solid #eee;
+        }
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-icon { color: #888; }
+        .no-results { text-align: center; padding: 20px; color: #888; }
+
+
+        /* 사이드 메뉴 컨테이너 (슬라이드 용) */
+        #side-menu-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px; /* 메뉴 너비 */
+            height: 100%;
+            background-color: #fff;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            z-index: 30;
+            transform: translateX(-100%); /* 기본 숨김 */
+            transition: transform 0.3s ease-out;
+        }
+        /* 사이드 메뉴 오버레이 (배경 어둡게) */
+        #menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 29;
+            display: none;
         }
     </style>
 </head>
 <body>
 
 <div id="map"></div>
+
+<div class="top-ui-container">
+    <button id="hamburger-menu-btn" title="메뉴">&#9776;</button>
+    
+    <div id="main-search-bar">
+        <span class="search-icon">&#128269;</span>
+        <input type="text" placeholder="건물, 강의실 검색" onfocus="document.getElementById('search-results-list').style.display='block'" onblur="setTimeout(() => document.getElementById('search-results-list').style.display='none', 100)"/>
+    </div>
+</div>
+
+<ul id="search-results-list">
+    <li class="search-result-item">
+        <span class="search-result-icon">&#127979;</span>
+        <span>진리관</span>
+    </li>
+    <li class="search-result-item">
+        <span class="search-result-icon">&#128205;</span>
+        <span>본부동 201호</span>
+    </li>
+    <li class="search-result-item">
+        <span class="search-result-icon">&#127979;</span>
+        <span>학생회관</span>
+    </li>
+    </ul>
+
+<button id="my-location-fab" title="내 위치">&#9702;</button>
+
+
+<div id="building-bottom-sheet">
+    
+    <div class="building-image-area">
+        <img src="/images/default_building.png" alt="건물 대표 이미지" onerror="this.src='/images/default_building.png'"/>
+    </div>
+    
+    <div class="sheet-header">
+        <div class="building-info">
+            <h1 class="building-name">본부동</h1>
+            <p class="building-description">대학 본부 및 행정 시설</p>
+        </div>
+        <button id="sheet-close-btn" title="닫기">&times;</button>
+    </div>
+
+    <div class="floor-tabs">
+        <div class="floor-tab active">전체</div>
+        <div class="floor-tab">1F</div>
+        <div class="floor-tab">2F</div>
+        <div class="floor-tab">3F</div>
+        <div class="floor-tab">4F</div>
+        <div class="floor-tab">B1</div>
+        <div class="floor-tab">B2</div>
+        <div class="floor-tab">Rooftop</div>
+    </div>
+
+    <div class="room-list-container">
+        <ul id="room-list" class="room-list">
+            <li class="room-item">
+                <div class="room-details">
+                    <span class="room-name">101호 전공강의실</span>
+                    <span class="status-badge available">🔵 사용가능</span>
+                </div>
+                <button class="favorite-btn" title="즐겨찾기">&#9733;</button>
+            </li>
+            <li class="room-item">
+                <div class="room-details">
+                    <span class="room-name">203호 세미나실</span>
+                    <span class="status-badge in-use">🔴 수업중</span>
+                </div>
+                <button class="favorite-btn active" title="즐겨찾기 해제">&#9733;</button>
+            </li>
+            <li class="room-item">
+                <div class="room-details">
+                    <span class="room-name">305호 컴퓨터실</span>
+                    <span class="status-badge available">🔵 사용가능</span>
+                </div>
+                <button class="favorite-btn" title="즐겨찾기">&#9733;</button>
+            </li>
+            <li class="room-item">
+                <div class="room-details">
+                    <span class="room-name">306호 랩실</span>
+                    <span class="status-badge in-use">🔴 수업중</span>
+                </div>
+                <button class="favorite-btn active" title="즐겨찾기 해제">&#9733;</button>
+            </li>
+            <li class="room-item">
+                <div class="room-details">
+                    <span class="room-name">401호 대형 강의실</span>
+                    <span class="status-badge available">🔵 사용가능</span>
+                </div>
+                <button class="favorite-btn" title="즐겨찾기">&#9733;</button>
+            </li>
+            </ul>
+    </div>
+</div>
+
+<div id="menu-overlay"></div>
+
+<div id="side-menu-container">
+    <div style="padding: 20px;">
+        <h2>Campus Compass</h2>
+        <hr/>
+        <div style="margin-bottom: 20px;">
+            <p>로그인이 필요합니다</p>
+            <button>[로그인]</button>
+        </div>
+        
+        <h3>내가 찜한 강의실</h3>
+        <ul style="list-style: none; padding: 0;">
+            <li style="padding: 5px 0; display: flex; justify-content: space-between; align-items: center;">
+                <span>진리관 203호</span>
+                <div>
+                    <span style="margin-right: 5px;">&rarr;</span>
+                    <span style="cursor: pointer;">&#128465;</span> </div>
+            </li>
+             <li style="padding: 5px 0; display: flex; justify-content: space-between; align-items: center;">
+                <span>본부동 203호</span>
+                <div>
+                    <span style="margin-right: 5px;">&rarr;</span>
+                    <span style="cursor: pointer;">&#128465;</span> </div>
+            </li>
+            </ul>
+    </div>
+</div>
+
 
 <script type="text/javascript" src="http://dapi.kakao.com/v2/maps/sdk.js?appkey=62ce24f8a9799f9545de678f7cd4fb4c"></script>
 
@@ -37,7 +431,6 @@
 
     kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
         var latlng = mouseEvent.latLng;
-
         console.log('%c[좌표 확인]', 'color: blue; font-weight: bold;');
         console.log('위도(latitude): ' + latlng.getLat());
         console.log('경도(longitude): ' + latlng.getLng());
@@ -45,7 +438,19 @@
     });
     // =========================================================
 
+    // 💡 JS 임시 동작 추가: Bottom Sheet 열기/닫기 (퍼블리싱 확인용)
+    const sheet = document.getElementById('building-bottom-sheet');
+    const closeBtn = document.getElementById('sheet-close-btn');
 
+    closeBtn.addEventListener('click', () => {
+        sheet.classList.remove('active');
+    });
+
+    // 마커 클릭 시 Bottom Sheet가 열리도록 기존 로직 수정
+    function openBottomSheet() {
+        sheet.classList.add('active');
+    }
+    
     // 2. 백엔드 API 호출하여 건물 데이터 가져오기
     fetch('/api/buildings')
         .then(response => {
@@ -69,7 +474,7 @@
                     map: map // 지도에 올리기
                 });
 
-                // 4. 마커에 이름표(인포윈도우) 달기
+                // 4. 마커에 이름표(인포윈도우) 달기 및 클릭 이벤트 추가
                 var content = '<div class="info-window">' + building.name + '</div>';
 
                 var infowindow = new kakao.maps.InfoWindow({
@@ -85,6 +490,13 @@
                 kakao.maps.event.addListener(marker, 'mouseout', function() {
                     infowindow.close();
                 });
+                
+                // ⭐ 마커 클릭 시 Bottom Sheet 열기 (추가된 부분)
+                kakao.maps.event.addListener(marker, 'click', function() {
+                    openBottomSheet();
+                    // 여기에 building.id 등을 사용하여 Bottom Sheet에 건물 상세 정보를 채우는 로직이 추가될 예정입니다.
+                });
+
             });
         })
         .catch(error => {
