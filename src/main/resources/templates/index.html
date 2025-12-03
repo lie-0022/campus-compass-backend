@@ -3,10 +3,98 @@
 <head>
     <meta charset="utf-8"/>
     <title>Campus Compass</title>
-    <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; }
-        #map { width: 100%; height: 100%; }
 
+    <!-- 전체 레이아웃 스타일 -->
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'Pretendard', sans-serif;
+            background: #f5f7fb;
+        }
+
+        /* 상단 검색바 */
+        .top-bar {
+            width: 100%;
+            padding: 15px 20px;
+            box-sizing: border-box;
+        }
+
+        .search-box {
+            width: 100%;
+            height: 42px;
+            padding: 0 15px;
+            font-size: 14px;
+            border: 1px solid #dfe3e8;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        /* 카테고리 버튼 */
+        .category-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 0 20px 10px 20px;
+        }
+
+        .category-btn {
+            padding: 8px 18px;
+            border-radius: 50px;
+            border: 1px solid #d3d8de;
+            background: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .category-btn.active {
+            background: #1d4ed8;
+            color: white;
+            border: none;
+        }
+
+        /* 지도 박스 */
+        #map-wrapper {
+            width: calc(100% - 40px);
+            height: calc(100% - 240px);
+            background: white;
+            border-radius: 12px;
+            margin: 0 auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 하단 네비게이션 */
+        .bottom-nav {
+            width: 100%;
+            height: 70px;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #eee;
+            position: fixed;
+            bottom: 0;
+        }
+
+        .nav-item {
+            text-align: center;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .nav-item.active {
+            color: #1d4ed8;
+        }
+
+        /* 인포윈도우 스타일 */
         .info-window {
             padding: 5px;
             font-size: 13px;
@@ -17,15 +105,46 @@
             white-space: nowrap;
         }
     </style>
+
 </head>
 <body>
 
-<div id="map"></div>
+<!-- 상단 검색창 -->
+<div class="top-bar">
+    <input type="text" class="search-box" placeholder="시설명 검색..."/>
+</div>
 
+<!-- 카테고리 버튼 -->
+<div class="category-container">
+    <button class="category-btn active">전체</button>
+    <button class="category-btn">카페</button>
+    <button class="category-btn">식당</button>
+    <button class="category-btn">도서관</button>
+    <button class="category-btn">편의점</button>
+    <button class="category-btn">휴게실</button>
+    <button class="category-btn">체육관</button>
+    <button class="category-btn">의무실</button>
+    <button class="category-btn">통학버스</button>
+    <button class="category-btn">ATM</button>
+</div>
+
+<!-- 지도 -->
+<div id="map-wrapper">
+    <div id="map"></div>
+</div>
+
+<!-- 하단 네비게이션 -->
+<div class="bottom-nav">
+    <div class="nav-item active">지도</div>
+    <div class="nav-item">즐겨찾기</div>
+    <div class="nav-item">설정</div>
+</div>
+
+<!-- 카카오맵 스크립트 -->
 <script type="text/javascript" src="http://dapi.kakao.com/v2/maps/sdk.js?appkey=62ce24f8a9799f9545de678f7cd4fb4c"></script>
 
 <script>
-    // 1. 지도 생성하기
+    // 지도 기본 설정
     var container = document.getElementById('map');
     var options = {
         center: new kakao.maps.LatLng(36.8392, 127.1835),
@@ -35,6 +154,7 @@
     var map = new kakao.maps.Map(container, options);
     console.log("지도 로딩 성공! 데이터를 불러옵니다...");
 
+    // 좌표 출력
     kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
         var latlng = mouseEvent.latLng;
 
@@ -43,10 +163,8 @@
         console.log('경도(longitude): ' + latlng.getLng());
         console.log('복사용 SQL: ' + latlng.getLat() + ', ' + latlng.getLng());
     });
-    // =========================================================
 
-
-    // 2. 백엔드 API 호출하여 건물 데이터 가져오기
+    // 백엔드 API로 건물 데이터 불러오기
     fetch('/api/buildings')
         .then(response => {
             if (!response.ok) {
@@ -57,31 +175,25 @@
         .then(buildings => {
             console.log('가져온 건물 데이터:', buildings);
 
-            // 3. 가져온 데이터만큼 반복하며 마커 생성
             buildings.forEach(function(building) {
 
-                // 마커가 표시될 위치
                 var markerPosition  = new kakao.maps.LatLng(building.latitude, building.longitude);
 
-                // 마커 생성
                 var marker = new kakao.maps.Marker({
                     position: markerPosition,
-                    map: map // 지도에 올리기
+                    map: map
                 });
 
-                // 4. 마커에 이름표(인포윈도우) 달기
                 var content = '<div class="info-window">' + building.name + '</div>';
 
                 var infowindow = new kakao.maps.InfoWindow({
                     content : content
                 });
 
-                // 마우스 올렸을 때 이름표 열기
                 kakao.maps.event.addListener(marker, 'mouseover', function() {
                     infowindow.open(map, marker);
                 });
 
-                // 마우스 치웠을 때 이름표 닫기
                 kakao.maps.event.addListener(marker, 'mouseout', function() {
                     infowindow.close();
                 });
@@ -91,5 +203,6 @@
             console.error('건물 데이터 로딩 실패:', error);
         });
 </script>
+
 </body>
 </html>

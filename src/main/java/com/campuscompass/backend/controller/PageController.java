@@ -9,7 +9,7 @@ public class PageController {
     // 메인 페이지 (지도 화면)
     @GetMapping("/")
     public String mainPage() {
-        return "index";
+        return "login";
     }
 
     // 로그인 페이지 (나중에 사용)
@@ -17,4 +17,9 @@ public class PageController {
     public String loginPage() {
         return "login";
     }
+    @GetMapping("/map")
+    public String mapPage() {
+        return "index"; // index.html 로 이동
+    }
+
 }
