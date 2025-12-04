@@ -21,5 +21,8 @@ public class PageController {
     public String mapPage() {
         return "index"; // index.html 로 이동
     }
-
+    @GetMapping("/detail")
+    public String detailPage() {
+        return "detail"; // templates/detail.html
+    }
 }
