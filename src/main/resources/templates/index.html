@@ -3,93 +3,381 @@
 <head>
     <meta charset="utf-8"/>
     <title>Campus Compass</title>
+
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; }
-        #map { width: 100%; height: 100%; }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'Pretendard', sans-serif;
+            background: #f5f7fb;
+        }
+
+        /* 상단 헤더 */
+        .header {
+            width: 100%;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-sizing: border-box;
+            background: #ffffff;
+            font-size: 20px;
+            font-weight: bold;
+            color: #1d4ed8;
+        }
+
+        .home-icon {
+            font-size: 22px;
+            cursor: pointer;
+        }
+
+        /* 검색창 */
+        .search-wrapper {
+            width: 100%;
+            padding: 10px 20px;
+            box-sizing: border-box;
+        }
+
+        .search-box {
+            width: 100%;
+            height: 45px;
+            padding: 0 15px;
+            border-radius: 12px;
+            border: 1px solid #d0d5dd;
+            font-size: 14px;
+            outline: none;
+        }
+
+        /* 카테고리 */
+        .category-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 0 20px;
+        }
+
+        .category-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: #ffffff;
+            border-radius: 40px;
+            border: 1px solid #d1d5db;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .category-btn.active {
+            background: #1d4ed8;
+            color: white;
+            border: none;
+        }
+
+        .category-icon {
+            font-size: 15px;
+        }
+
+        /* 지도 박스 */
+        #map-wrapper {
+            width: calc(100% - 40px);
+            height: calc(100% - 260px);
+            background: white;
+            border-radius: 14px;
+            margin: 15px auto;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 하단 네비게이션 */
+        .bottom-nav {
+            width: 100%;
+            height: 70px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+        }
+
+        .nav-item {
+            text-align: center;
+            color: #6b7280;
+            cursor: pointer;
+        }
+
+        .nav-icon {
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+
+        .nav-item.active {
+            color: #1d4ed8;
+        }
+
+        /* 상세 패널 */
+        #detail-panel-bg {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            left: 0; top: 0;
+            background: rgba(0,0,0,0.25);
+            display: none;
+            z-index: 9998;
+        }
+
+        #detail-panel {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            max-height: 65%;
+            background: white;
+            padding: 20px;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.2);
+            transform: translateY(100%);
+            transition: .3s ease-out;
+            z-index: 9999;
+            overflow-y: auto;
+        }
+
+        #detail-panel.open {
+            transform: translateY(0);
+        }
+
+        .floor-title {
+            margin-top: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .floor-content {
+            display: none;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .close-btn {
+            position: absolute;
+            right: 18px;
+            top: 14px;
+            font-size: 20px;
+            cursor: pointer;
+        }
 
         .info-window {
             padding: 5px;
             font-size: 13px;
             font-weight: bold;
-            color: #333;
-            text-align: center;
-            border-radius: 5px;
-            white-space: nowrap;
         }
     </style>
 </head>
+
 <body>
 
-<div id="map"></div>
+<!-- 헤더 -->
+<div class="header">
+    Campus Compass
+    <div class="home-icon" onclick="location.href='/login'">🏠</div>
+</div>
 
-<script type="text/javascript" src="http://dapi.kakao.com/v2/maps/sdk.js?appkey=62ce24f8a9799f9545de678f7cd4fb4c"></script>
+<!-- 검색 -->
+<div class="search-wrapper">
+    <input type="text" class="search-box" placeholder="시설명 검색...">
+</div>
+
+<!-- 카테고리 -->
+<div class="category-container">
+    <div class="category-btn active"><span class="category-icon">🧭</span> 전체</div>
+    <div class="category-btn"><span class="category-icon">☕</span> 카페</div>
+    <div class="category-btn"><span class="category-icon">🍴</span> 식당</div>
+    <div class="category-btn"><span class="category-icon">📚</span> 도서관</div>
+    <div class="category-btn"><span class="category-icon">🏪</span> 편의점</div>
+    <div class="category-btn"><span class="category-icon">🛋</span> 휴게실</div>
+    <div class="category-btn"><span class="category-icon">🏟</span> 체육관</div>
+    <div class="category-btn"><span class="category-icon">⛑</span> 의무실</div>
+    <div class="category-btn"><span class="category-icon">🚌</span> 통학버스</div>
+    <div class="category-btn"><span class="category-icon">🏧</span> ATM</div>
+</div>
+
+<!-- 지도 -->
+<div id="map-wrapper">
+    <div id="map"></div>
+</div>
+
+<!-- 상세 패널 -->
+<div id="detail-panel-bg"></div>
+<div id="detail-panel"></div>
+
+<!-- 하단 네비게이션 -->
+<div class="bottom-nav">
+    <div class="nav-item active">
+        <div class="nav-icon">🗺</div>
+        지도
+    </div>
+    <div class="nav-item">
+        <div class="nav-icon">❤️</div>
+        즐겨찾기
+    </div>
+    <div class="nav-item">
+        <div class="nav-icon">⚙️</div>
+        설정
+    </div>
+</div>
+
+
+<script src="http://dapi.kakao.com/v2/maps/sdk.js?appkey=62ce24f8a9799f9545de678f7cd4fb4c"></script>
 
 <script>
-    // 1. 지도 생성하기
-    var container = document.getElementById('map');
-    var options = {
+    var map = new kakao.maps.Map(document.getElementById('map'), {
         center: new kakao.maps.LatLng(36.8392, 127.1835),
         level: 3
+    });
+
+    /* buildingDetails, showDetailPanel(), closeDetail(), toggleFloor() 등
+       기존 그대로 유지 */
+    var buildingDetails = {
+        "본부동": {
+            floors: {
+                "지하 1층": ["가스펠하우스", "평일 08:00-19:00", "전화번호:041-550-0858"],
+                "1층": ["도서관", "평일 09:00-18:00"],
+                "3~9층": ["라운지"],
+                "6층": ["매점"],
+                "6,8층 로비": ["복사기"]
+            }
+        },
+        "백석생활관": {
+            floors: {
+                "1층": ["식당", "평일 07:30-09:00, 11:30-13:00, 17:30-19:00", "전화번호: 010-8805-1215"]
+            }
+        },
+        "예술동": {
+            floors: {
+                "1,7층 로비": ["복사기"],
+                "5층": ["매점"]
+            }
+        },
+        "교수회관": {
+            floors: {
+                "1층": ["식당"],
+                "1층(식당 안)": ["매점"],
+                "2층": ["교수식당"]
+            }
+        },
+        "목양관": {
+            floors: {
+                "1층": ["복사점"],
+                "3~5층": ["휴게실"],
+                "5층": ["개방전산실"]
+            }
+        },
+        "통학버스 승차장": {
+            floors: {
+                "신정관광/블루관광": ["신정관광/블루관광"]
+            }
+        },
+        "진리관": {
+            floors: {
+                "1층": ["가스펠하우스", "우체국", "서점", "보건실", "여학생회복실"],
+                "3층 별관": ["복사기"]
+            }
+        },
+        "인성관": {
+            floors: {
+                "1층 로비": ["증명서 발급기"]
+            }
+        }
     };
 
-    var map = new kakao.maps.Map(container, options);
-    console.log("지도 로딩 성공! 데이터를 불러옵니다...");
+    function showDetailPanel(name) {
+        var panel = document.getElementById("detail-panel");
+        var bg = document.getElementById("detail-panel-bg");
 
-    kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
-        var latlng = mouseEvent.latLng;
+        var data = buildingDetails[name];
+        var html = `<div class="close-btn" onclick="closeDetail()">✕</div><h2>${name}</h2>`;
 
-        console.log('%c[좌표 확인]', 'color: blue; font-weight: bold;');
-        console.log('위도(latitude): ' + latlng.getLat());
-        console.log('경도(longitude): ' + latlng.getLng());
-        console.log('복사용 SQL: ' + latlng.getLat() + ', ' + latlng.getLng());
-    });
-    // =========================================================
-
-
-    // 2. 백엔드 API 호출하여 건물 데이터 가져오기
-    fetch('/api/buildings')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('네트워크 응답이 올바르지 않습니다.');
-            }
-            return response.json();
-        })
-        .then(buildings => {
-            console.log('가져온 건물 데이터:', buildings);
-
-            // 3. 가져온 데이터만큼 반복하며 마커 생성
-            buildings.forEach(function(building) {
-
-                // 마커가 표시될 위치
-                var markerPosition  = new kakao.maps.LatLng(building.latitude, building.longitude);
-
-                // 마커 생성
-                var marker = new kakao.maps.Marker({
-                    position: markerPosition,
-                    map: map // 지도에 올리기
-                });
-
-                // 4. 마커에 이름표(인포윈도우) 달기
-                var content = '<div class="info-window">' + building.name + '</div>';
-
-                var infowindow = new kakao.maps.InfoWindow({
-                    content : content
-                });
-
-                // 마우스 올렸을 때 이름표 열기
-                kakao.maps.event.addListener(marker, 'mouseover', function() {
-                    infowindow.open(map, marker);
-                });
-
-                // 마우스 치웠을 때 이름표 닫기
-                kakao.maps.event.addListener(marker, 'mouseout', function() {
-                    infowindow.close();
-                });
+        if (data) {
+            Object.keys(data.floors).forEach(function(floor) {
+                html += `
+                <div class="floor-title" onclick="toggleFloor('${floor}')">${floor}</div>
+                <div class="floor-content" id="floor-${floor}">
+                    ${data.floors[floor].map(item => {
+                        if(item === "가스펠하우스") {
+                            return `<div>- <a href="/detail" style="color:#1d4ed8; font-weight:bold;">${item}</a></div>`;
+                        }
+                        return `<div>- ${item}</div>`;
+                    }).join("")}
+                </div>
+                `;
             });
-        })
-        .catch(error => {
-            console.error('건물 데이터 로딩 실패:', error);
+        }
+
+        panel.innerHTML = html;
+        panel.classList.add("open");
+        bg.style.display = "block";
+    }
+
+    function closeDetail() {
+        document.getElementById("detail-panel").classList.remove("open");
+        document.getElementById("detail-panel-bg").style.display = "none";
+    }
+
+    document.getElementById("detail-panel-bg").addEventListener("click", closeDetail);
+
+    function toggleFloor(floor) {
+        var el = document.getElementById("floor-" + floor);
+        el.style.display = el.style.display === "block" ? "none" : "block";
+    }
+
+    /* 마커 생성 */
+    function createMarker(lat, lng, name) {
+        var marker = new kakao.maps.Marker({
+            position: new kakao.maps.LatLng(lat, lng),
+            map: map
         });
+
+        var infowindow = new kakao.maps.InfoWindow({
+            content: `<div class="info-window">${name}</div>`
+        });
+
+        kakao.maps.event.addListener(marker, 'mouseover', function () {
+            infowindow.open(map, marker);
+        });
+        kakao.maps.event.addListener(marker, 'mouseout', function () {
+            infowindow.close();
+        });
+        kakao.maps.event.addListener(marker, 'click', function () {
+            showDetailPanel(name);
+        });
+
+        return marker;
+    }
+
+    /* 마커 목록 */
+    var extraBuildings = [
+        { name: "백석생활관", latitude: 36.842416868120225, longitude: 127.18524566858616 },
+        { name: "예술동", latitude: 36.83884502537989, longitude: 127.18745680215231 },
+        { name: "교수회관", latitude: 36.83968724481267, longitude: 127.18477943520088 },
+        { name: "목양관", latitude: 36.84084689807044, longitude: 127.18366111087241 },
+        { name: "통학버스 승차장", latitude: 36.841622951995234, longitude: 127.18294544630108 },
+        { name: "인성관", latitude: 36.839387303159945, longitude: 127.18353430049741 },
+        { name: "본부동", latitude: 36.839315997059806, longitude: 127.18593046396421 },
+        { name: "진리관", latitude: 36.84020572676171, longitude: 127.18455646157217 }
+    ];
+
+    extraBuildings.forEach(b => createMarker(b.latitude, b.longitude, b.name));
 </script>
+
 </body>
 </html>
