@@ -3,93 +3,393 @@
 <head>
     <meta charset="utf-8"/>
     <title>Campus Compass</title>
+
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; }
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            font-family: 'Pretendard', sans-serif;
+            background: #f5f7fb;
+        }
+
+        .header {
+            width: 100%;
+            padding: 15px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            background: #ffffff;
+            font-size: 20px; font-weight: bold;
+            color: #1d4ed8;
+        }
+
+        .home-icon { font-size: 22px; cursor: pointer; }
+
+        .search-wrapper { width: 100%; padding: 10px 20px; }
+
+        .search-box {
+            width: 100%; height: 45px;
+            padding: 0 15px; border-radius: 12px;
+            border: 1px solid #d0d5dd;
+        }
+
+        /* 카테고리 */
+        .category-container {
+            display: flex; flex-wrap: wrap;
+            gap: 8px; padding: 0 20px;
+        }
+
+        .category-btn {
+            padding: 8px 14px; border-radius: 40px;
+            background: #ffffff; border: 1px solid #d1d5db;
+            font-size: 14px; cursor: pointer;
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        .category-btn.active {
+            background: #1d4ed8; color: white; border: none;
+        }
+
+        #map-wrapper {
+            width: calc(100% - 40px);
+            height: calc(100% - 260px);
+            margin: 15px auto;
+            border-radius: 14px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
         #map { width: 100%; height: 100%; }
 
-        .info-window {
-            padding: 5px;
-            font-size: 13px;
-            font-weight: bold;
-            color: #333;
-            text-align: center;
-            border-radius: 5px;
-            white-space: nowrap;
+        /* 상세 패널 */
+        #detail-panel-bg {
+            position: fixed; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.25); display: none;
+            top: 0; left: 0; z-index: 9998;
         }
+
+        #detail-panel {
+            position: fixed; bottom: 0; width: 100%;
+            max-height: 65%; background: white;
+            padding: 20px; border-radius: 20px 20px 0 0;
+            transform: translateY(100%);
+            transition: .3s;
+            z-index: 9999; overflow-y: auto;
+        }
+
+        #detail-panel.open { transform: translateY(0); }
+        .close-btn { position: absolute; right:18px; top:14px; cursor:pointer; }
+        .floor-title { margin-top:12px; font-weight:bold; cursor:pointer; }
+        .floor-content { display:none; margin-left:10px; }
     </style>
 </head>
+
 <body>
 
-<div id="map"></div>
+<div class="header">
+    Campus Compass
+    <div class="home-icon" onclick="location.href='/login'">🏠</div>
+</div>
 
-<script type="text/javascript" src="http://dapi.kakao.com/v2/maps/sdk.js?appkey=62ce24f8a9799f9545de678f7cd4fb4c"></script>
+<div class="search-wrapper">
+    <input type="text" class="search-box" placeholder="시설명 검색...">
+</div>
+
+<!-- 카테고리 버튼 -->
+<div class="category-container">
+    <div class="category-btn active" data-category="전체">🧭 전체</div>
+    <div class="category-btn" data-category="식당">🍴 식당</div>
+    <div class="category-btn" data-category="도서관">📚 도서관</div>
+    <div class="category-btn" data-category="편의점">🏪 편의점</div>
+    <div class="category-btn" data-category="휴게실">🛋 휴게실</div>
+    <div class="category-btn" data-category="의무실">⛑ 의무실</div>
+    <div class="category-btn" data-category="통학버스">🚌 통학버스</div>
+</div>
+
+<div id="map-wrapper"><div id="map"></div></div>
+
+<div id="detail-panel-bg"></div>
+<div id="detail-panel"></div>
+
+<script src="http://dapi.kakao.com/v2/maps/sdk.js?appkey=62ce24f8a9799f9545de678f7cd4fb4c"></script>
 
 <script>
-    // 1. 지도 생성하기
-    var container = document.getElementById('map');
-    var options = {
+    var map = new kakao.maps.Map(document.getElementById("map"), {
         center: new kakao.maps.LatLng(36.8392, 127.1835),
         level: 3
+    });
+
+    /* ---------------------------
+     * 1) 건물 정보 + 카테고리 정의
+     * --------------------------- */
+    var buildings = [
+        { name:"백석생활관", lat:36.8424168681, lng:127.1852456685, categories:["식당"] },
+        { name:"예술동", lat:36.8388450253, lng:127.1874568021, categories:["편의점"] },
+        { name:"교수회관", lat:36.8396872448, lng:127.1847794352, categories:["식당","편의점"] },
+        { name:"목양관", lat:36.8408468980, lng:127.1836611108, categories:["휴게실"] },
+        { name:"통학버스 승차장", lat:36.8416229519, lng:127.1829454463, categories:["통학버스"] },
+        { name:"인성관", lat:36.8393873031, lng:127.1835343004, categories:["ATM"] },
+        { name:"본부동", lat:36.8393159970, lng:127.1859304639, categories:["도서관"] },
+        { name:"진리관", lat:36.8402057267, lng:127.1845564615, categories:["편의점","의무실"] }
+    ];
+
+    /* 마커 저장 */
+    var markers = [];
+
+    function createMarker(b) {
+        var m = new kakao.maps.Marker({
+            position: new kakao.maps.LatLng(b.lat, b.lng),
+            map: map
+        });
+
+        kakao.maps.event.addListener(m, "click", function () {
+            showDetailPanel(b.name);
+        });
+
+        markers.push({ marker: m, data: b });
+    }
+
+    buildings.forEach(b => createMarker(b));
+
+    /* 카테고리 필터링 */
+    document.querySelectorAll(".category-btn").forEach(btn => {
+        btn.addEventListener("click", function () {
+            document.querySelectorAll(".category-btn").forEach(b => b.classList.remove("active"));
+            this.classList.add("active");
+
+            const category = this.dataset.category;
+            filterMarkers(category);
+        });
+    });
+
+    function filterMarkers(category) {
+        markers.forEach(obj => {
+            if (category === "전체" || obj.data.categories.includes(category)) {
+                obj.marker.setMap(map);
+            } else {
+                obj.marker.setMap(null);
+            }
+        });
+    }
+
+    /* ---------------------------
+     * 3) 상세 패널 기능 (가스펠하우스 클릭 시 detail.html 이동)
+     * --------------------------- */
+    var buildingDetails = {
+        "본부동": {
+            floors: {
+                "지하 1층": [
+                    "가스펠하우스",
+                    "평일 08:00-19:00",
+                    "학생들에게 시사와 차, 음료 등을 저렴한 가격으로 공급하고 있습니다."
+                ],
+                "1층": [
+                    "도서관",
+                    "평일 09:00-18:00",
+                    "학생들이 인터넷 검색이나 자료 탐색을 할 수 있는 곳입니다."
+                ],
+                "3~9층": [
+                    "라운지",
+                    "24시간",
+                    "학생들이 쉬거나 개인 공부를 할 수 있는 개방형 공간입니다."
+                ],
+                "5층": [
+                    "맥실습실",
+                    "평일 09:00-18:00",
+                    "전화번호: 041-620-9714",
+                    "MAC 기반 작업 환경이 구축되어 디자인 및 영상 관련 작업에 활용됩니다."
+                ],
+                "6,8층": [
+                    "복사기",
+                    "평일 09:00-18:00",
+                    "전화번호: 041-550-0722",
+                    "학생들의 문서 출력과 복사 작업을 빠르게 처리할 수 있습니다."
+                ],
+                "6층": [
+                    "매점",
+                    "평일 09:00-18:00",
+                    "전화번호: 041-620-9509",
+                    "간식류, 음료, 문구류 등을 구매할 수 있습니다."
+                ]
+            }
+        },
+
+        "백석생활관": {
+            floors: {
+                "1층": [
+                    "식당",
+                    "평일 07:30-09:00, 11:30-13:00, 17:30-19:00",
+                    "전화번호: 010-8805-1215",
+                    "학생들에게 영양을 고려한 식사를 제공합니다."
+                ]
+            }
+        },
+
+        "예술동": {
+            floors: {
+                "1,7층": [
+                    "복사기",
+                    "평일 09:00-18:00",
+                    "전화번호: 041-561-0722",
+                    "디자인 출력이나 일반 문서 작업에 사용됩니다."
+                ],
+                "5층": [
+                    "매점",
+                    "평일 09:00-18:00",
+                    "전화번호: 041-620-9679",
+                    "간식류, 음료, 문구류 등을 판매합니다."
+                ]
+            }
+        },
+
+        "교수회관": {
+            floors: {
+                "1층": [
+                    "식당",
+                    "평일 11:30-13:30, 17:00-19:00",
+                    "전화번호: 041-620-9578",
+                    "학교 구성원들에게 균형 잡힌 식사를 제공합니다."
+                ,
+                    "매점",
+                    "평일 09:00-18:00",
+                    "학용품, 간식류, 음료 등을 판매합니다."
+                ],
+                "2층": [
+                    "교수식당",
+                    "평일 11:30-13:30",
+                    "전화번호: 041-620-9578",
+                    "조용한 분위기에서 식사를 제공하며 품질 높은 메뉴가 준비됩니다."
+                ]
+            }
+        },
+
+        "목양관": {
+            floors: {
+                "1층": [
+                    "복사점",
+                    "평일 09:00-18:00",
+                    "전화번호: 041-561-0722",
+                    "출력, 제본, 복사 등의 문서 작업 서비스를 제공합니다."
+                ],
+                "3~5층": [
+                    "휴게실",
+                    "24시간",
+                    "학생들이 수업 사이에 휴식할 수 있는 공간입니다."
+                ],
+                "5층": [
+                    "개방전산실",
+                    "평일 09:00-18:00",
+                    "학생들이 자유롭게 컴퓨터를 사용할 수 있는 공간입니다."
+                ]
+            }
+        },
+
+        "통학버스 승차장": {
+            floors: {
+                "통학버스 승차장": [
+                    "신정관광 / 블루관광",
+                    "평일 07:00-22:00",
+                    "전화번호: 041-567-3001",
+                    "학생들의 통학을 지원하는 버스 운행 서비스를 제공합니다."
+                ]
+            }
+        },
+
+        "진리관": {
+            floors: {
+                "1층": [
+                    "우체국",
+                    "평일 09:00-17:00",
+                    "전화번호: 041-550-0730",
+                    "우편 발송, 택배 접수, 금융 관련 서비스를 제공합니다."
+                ,
+                    "서점",
+                    "평일 09:00-18:00",
+                    "전화번호: 041-550-9198",
+                    "교재, 문구류, 학습용 도서를 구매할 수 있습니다."
+                ,
+                    "복사기",
+                    "평일 09:00-18:00",
+                    "전화번호: 041-550-0722",
+                    "학생들의 기본적인 출력 및 복사 작업을 지원합니다."
+                ,
+                    "보건실",
+                    "평일 09:00-18:00",
+                    "전화번호: 041-550-0722",
+                    "학생들의 기본적인 응급 처치와 상담을 지원합니다."
+                ,
+                    "여학생회복실",
+                    "평일 09:00-18:00",
+                    "여학생들을 위한 전용 휴식 공간입니다."
+                ],
+                "3층": [
+                    "복사기",
+                    "평일 09:00-18:00",
+                    "전화번호: 041-550-0722",
+                    "학생들의 기본적인 출력 및 복사 작업을 지원합니다."
+                ]
+            }
+        },
+
+        "인성관": {
+            floors: {
+                "1층 로비": [
+                    "증명서 발급기",
+                    "24시간",
+                    "전화번호: 041-550-0780",
+                    "각종 학교 증명서를 자동으로 발급합니다."
+                ]
+            }
+        }
     };
 
-    var map = new kakao.maps.Map(container, options);
-    console.log("지도 로딩 성공! 데이터를 불러옵니다...");
+    /* ---------------------------
+     * 가스펠하우스만 detail.html로 이동하도록 변경된 부분
+     * --------------------------- */
+    function showDetailPanel(name) {
+        var panel = document.getElementById("detail-panel");
+        var bg = document.getElementById("detail-panel-bg");
 
-    kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
-        var latlng = mouseEvent.latLng;
+        var data = buildingDetails[name];
+        var html = `<div class="close-btn" onclick="closeDetail()">✕</div>
+                    <h2>${name}</h2>`;
 
-        console.log('%c[좌표 확인]', 'color: blue; font-weight: bold;');
-        console.log('위도(latitude): ' + latlng.getLat());
-        console.log('경도(longitude): ' + latlng.getLng());
-        console.log('복사용 SQL: ' + latlng.getLat() + ', ' + latlng.getLng());
-    });
-    // =========================================================
+        if (data) {
+            Object.keys(data.floors).forEach(floor => {
+                html += `
+                <div class="floor-title" onclick="toggleFloor('${floor}')">${floor}</div>
+                <div class="floor-content" id="floor-${floor}">
+                `;
 
+                html += data.floors[floor].map(v => {
+                    if (v === "가스펠하우스") {
+                        return `<div>- <a href="detail" style="color:#1d4ed8; text-decoration:underline;">${v}</a></div>`;
+                    }
+                    return `<div>- ${v}</div>`;
+                }).join("");
 
-    // 2. 백엔드 API 호출하여 건물 데이터 가져오기
-    fetch('/api/buildings')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('네트워크 응답이 올바르지 않습니다.');
-            }
-            return response.json();
-        })
-        .then(buildings => {
-            console.log('가져온 건물 데이터:', buildings);
-
-            // 3. 가져온 데이터만큼 반복하며 마커 생성
-            buildings.forEach(function(building) {
-
-                // 마커가 표시될 위치
-                var markerPosition  = new kakao.maps.LatLng(building.latitude, building.longitude);
-
-                // 마커 생성
-                var marker = new kakao.maps.Marker({
-                    position: markerPosition,
-                    map: map // 지도에 올리기
-                });
-
-                // 4. 마커에 이름표(인포윈도우) 달기
-                var content = '<div class="info-window">' + building.name + '</div>';
-
-                var infowindow = new kakao.maps.InfoWindow({
-                    content : content
-                });
-
-                // 마우스 올렸을 때 이름표 열기
-                kakao.maps.event.addListener(marker, 'mouseover', function() {
-                    infowindow.open(map, marker);
-                });
-
-                // 마우스 치웠을 때 이름표 닫기
-                kakao.maps.event.addListener(marker, 'mouseout', function() {
-                    infowindow.close();
-                });
+                html += `</div>`;
             });
-        })
-        .catch(error => {
-            console.error('건물 데이터 로딩 실패:', error);
-        });
+        } else {
+            html += "<p>등록된 정보가 없습니다.</p>";
+        }
+
+        panel.innerHTML = html;
+        panel.classList.add("open");
+        bg.style.display = "block";
+    }
+
+    function closeDetail() {
+        document.getElementById("detail-panel").classList.remove("open");
+        document.getElementById("detail-panel-bg").style.display = "none";
+    }
+
+    document.getElementById("detail-panel-bg").addEventListener("click", closeDetail);
+
+    function toggleFloor(f) {
+        var el = document.getElementById("floor-" + f);
+        el.style.display = el.style.display === "block" ? "none" : "block";
+    }
 </script>
+
 </body>
 </html>
