@@ -38,9 +38,9 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
-# 5. JWT 설정
+# 5. JWT 설정 (강도 충분한 64바이트 키로 변경)
 jwt:
-  secret: ${JWT_SECRET:vmfhaltkwkdjfuqqlzkqhzldkqslekffjqtlsfkldkf}
+  secret: ${JWT_SECRET:3qf9Ksd82mf93nA71bxQpL8sD92nF1aP6xLw93BvZ5pCfK82mDd1QnFg7JxPqL91}
 
 logging:
   level:
