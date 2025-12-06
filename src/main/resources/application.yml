@@ -40,7 +40,8 @@ spring:
 
 # 5. JWT 설정
 jwt:
-  secret: ${JWT_SECRET:vmfhaltkwkdjfuqqlzkqhzldkqslekffjqtlsfkldkf}
+  secret: "CampusCompass_Super_Safe_Secret_Key_That_Is_Definitely_Strong_Enough_And_Over_64_Characters_Long_123456"
+
 
 logging:
   level:
