@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Campus Compass - 상세 정보</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Pretendard', sans-serif;
+            background: #f5f7fb;
+        }
+
+        /* 전체 레이아웃: 좌측 상세 / 우측 사이드바 */
+        .layout {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* 왼쪽 상세 페이지 */
+        .detail-panel {
+            width: 70%;
+            background: #fff;
+            padding: 20px 40px;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        /* 오른쪽 사이드바 */
+        .sidebar {
+            width: 30%;
+            background: #ffffff;
+            border-left: 1px solid #e5e7eb;
+            padding: 20px;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        /* 상단 헤더 */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .back-btn {
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        /* 시설 제목 + 카테고리 */
+        .facility-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 5px 12px;
+            background: #e6eeff;
+            color: #1d4ed8;
+            border-radius: 30px;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        /* 대표 이미지 */
+        .image-box {
+            width: 100%;
+            height: 300px;
+            background: #f2f4f8;
+            border: 2px dashed #d0d4da;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #9ca3af;
+            margin-bottom: 25px;
+        }
+
+        /* 시설 상세 설명 */
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .info-box {
+            width: 100%;
+            padding: 20px;
+            background: #fafbff;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 30px;
+            color: #444;
+        }
+
+        /* 아이콘 + 정보 리스트 */
+        .info-list {
+            margin-top: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 12px;
+        }
+
+        .info-icon {
+            font-size: 20px;
+            color: #4b5563;
+        }
+
+        .info-text-title {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .info-text-value {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        /* 사이드바 건물 목록 */
+        .sidebar-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-sub {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+
+        .building-item {
+            padding: 12px 15px;
+            background: #f9fafb;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+        }
+
+        .building-item:hover {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+        }
+
+        .building-name {
+            font-size: 15px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- 좌측 상세 패널 -->
+    <div class="detail-panel">
+
+        <!-- 상단 헤더 -->
+        <div class="header">
+            <div class="back-btn" onclick="history.back()">←</div>
+            <div class="title">Campus Compass</div>
+        </div>
+
+        <!-- 시설 제목 -->
+        <div class="facility-title">가스펠 하우스</div>
+        <div class="tag">카페</div>
+
+        <!-- 대표 이미지 박스 -->
+        <div class="image-box">
+            이미지 넣는 곳
+        </div>
+
+        <!-- 상세 설명 -->
+        <div class="section-title">시설 상세정보</div>
+        <div class="info-box">
+            여기에 시설 상세 설명을 입력하세요.
+        </div>
+
+        <!-- 정보 리스트 -->
+        <div class="info-list">
+
+            <div class="info-item">
+                <div class="info-icon">📍</div>
+                <div>
+                    <div class="info-text-title">위치</div>
+                    <div class="info-text-value">본부동 지하 1층</div>
+                </div>
+            </div>
+
+            <div class="info-item">
+                <div class="info-icon">⏰</div>
+                <div>
+                    <div class="info-text-title">운영시간</div>
+                    <div class="info-text-value">평일 08:00 - 19:00</div>
+                </div>
+            </div>
+
+            <div class="info-item">
+                <div class="info-icon">📞</div>
+                <div>
+                    <div class="info-text-title">연락처</div>
+                    <div class="info-text-value">등록된 연락처 없음</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 우측 사이드바 -->
+    <div class="sidebar">
+
+        <div class="sidebar-title">편의시설 목록</div>
+        <div class="sidebar-sub">건물별 시설을 확인하세요</div>
+
+        <div class="building-item"><div class="building-name">교수회관</div></div>
+        <div class="building-item"><div class="building-name">목양관</div></div>
+        <div class="building-item"><div class="building-name">백석생활관</div></div>
+        <div class="building-item"><div class="building-name">본부동</div></div>
+        <div class="building-item"><div class="building-name">예술동</div></div>
+        <div class="building-item"><div class="building-name">인성관</div></div>
+        <div class="building-item"><div class="building-name">진리관</div></div>
+        <div class="building-item"><div class="building-name">통학버스 승차장</div></div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
