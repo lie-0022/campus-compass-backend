@@ -29,43 +29,61 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
-                // 1. CSRF 비활성화 (H2 및 API 통신 편의성)
+                // 1. CSRF 비활성화
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // 2. 세션 미사용 (JWT 사용)
+                // 2. 세션 미사용 (JWT 기반)
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
 
-                // 3. 폼 로그인 & 기본 인증 비활성화 (우리는 커스텀 로그인 페이지 사용)
+                // 3. 기본 로그인 비활성화
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
 
-                // 4. 요청 권한 설정 (여기가 핵심!)
+                // 4. URL 접근 권한 설정
                 .authorizeHttpRequests(authz -> authz
-                        // 정적 리소스 (CSS, JS, 이미지) 허용
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
 
-                        // 화면 페이지 URL 허용
-                        .requestMatchers("/", "/login", "/signup", "/map").permitAll()
+                        // 정적 리소스 허용
+                        .requestMatchers(
+                                "/css/**",
+                                "/js/**",
+                                "/images/**",
+                                "/assets/**",
+                                "/webjars/**",
+                                "/favicon.ico"
+                        ).permitAll()
+
+                        // 화면 페이지 전체 허용
+                        .requestMatchers("/", "/login", "/signup", "/map", "/detail").permitAll()
 
                         // H2 콘솔 허용
                         .requestMatchers("/h2-console/**").permitAll()
 
-                        // 기존 API 허용 목록
-                        .requestMatchers("/api/user/login", "/api/user/signup", "/api/user/refresh").permitAll() // user 경로 확인 필요
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/buildings/**", "/api/floors/**", "/api/search").permitAll()
+                        // API 허용 (회원가입/로그인/빅데이터 API)
+                        .requestMatchers(
+                                "/api/user/login",
+                                "/api/user/signup",
+                                "/api/user/refresh",
+                                "/api/auth/**",
+                                "/api/buildings/**",
+                                "/api/floors/**",
+                                "/api/search"
+                        ).permitAll()
 
+                        // 나머지 호출은 인증 필요
                         .anyRequest().authenticated()
                 )
 
-                // 5. H2 콘솔 깨짐 방지
-                .headers(headers ->
-                        headers.frameOptions(frame -> frame.disable()))
+                // 5. H2 콘솔 Iframe 허용
+                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
 
-                // 6. JWT 필터 추가
-                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider),
-                        UsernamePasswordAuthenticationFilter.class)
+                // 6. JWT 필터 적용
+                .addFilterBefore(
+                        new JwtAuthenticationFilter(jwtTokenProvider),
+                        UsernamePasswordAuthenticationFilter.class
+                )
+
                 .build();
     }
 }
